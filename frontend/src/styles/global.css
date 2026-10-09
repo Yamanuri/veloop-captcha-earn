@@ -1,0 +1,38 @@
+:root {
+  --bg-0: #050a18;
+  --bg-1: #0a1330;
+  --card: #0e1a3d;
+  --card-2: #122148;
+  --line: rgba(122, 146, 255, 0.2);
+  --text: #eef2ff;
+  --muted: #93a0c8;
+  --gold: #f6b93b;
+  --gold-soft: rgba(246, 185, 59, 0.14);
+  --cyan: #3ad7ff;
+  --violet: #7c5cff;
+  --green: #22c55e;
+  --red: #ef4455;
+  --radius: 18px;
+  --font-body: 'Manrope', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Manrope', system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-body);
+  background:
+    radial-gradient(900px 500px at 50% -10%, rgba(124, 92, 255, 0.22), transparent 60%),
+    radial-gradient(700px 500px at 100% 100%, rgba(58, 215, 255, 0.1), transparent 60%),
+    linear-gradient(180deg, var(--bg-1), var(--bg-0));
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+button { font: inherit; color: inherit; }
+a { color: var(--cyan); }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

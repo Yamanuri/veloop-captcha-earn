@@ -1,0 +1,1129 @@
+{
+  "info": {
+    "name": "VELoop CAPTCHA Earn",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "tokenB",
+      "value": ""
+    },
+    {
+      "key": "challengeId",
+      "value": ""
+    },
+    {
+      "key": "firstChallengeId",
+      "value": ""
+    },
+    {
+      "key": "question",
+      "value": ""
+    },
+    {
+      "key": "wrongOption",
+      "value": ""
+    },
+    {
+      "key": "balanceBefore",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Happy path",
+      "item": [
+        {
+          "name": "Login (demo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@veloop.test\",\n  \"password\": \"Demo@1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login (user B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tokenB', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"userb@veloop.test\",\n  \"password\": \"UserB@1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Wallet before",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('balanceBefore', pm.response.json().balance);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/wallet/gems",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet",
+                "gems"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get CAPTCHA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json().challenge;",
+                  "pm.collectionVariables.set('challengeId', c.challengeId);",
+                  "pm.collectionVariables.set('question', c.question);",
+                  "pm.collectionVariables.set('wrongOption', c.options.find(o => o !== c.question));",
+                  "pm.test('4 unique options, no correctOption', () => { pm.expect(new Set(c.options).size).to.eql(4); pm.expect(JSON.stringify(c).toLowerCase()).to.not.include('correctoption'); });",
+                  "pm.collectionVariables.set('firstChallengeId', pm.collectionVariables.get('challengeId'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/current",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "current"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify CORRECT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json(); pm.test('CORRECT +1 credited on verify', () => { pm.expect(j.result).to.eql('CORRECT'); pm.expect(j.reward.amount).to.eql(1); pm.expect(j.balance).to.eql(Number(pm.collectionVariables.get('balanceBefore')) + 1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{challengeId}}\",\n  \"selectedOption\": \"{{question}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "verify"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Claim",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('claim does not credit twice', () => pm.expect(pm.response.json().balance).to.eql(Number(pm.collectionVariables.get('balanceBefore')) + 1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{challengeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/claim",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "claim"
+              ]
+            }
+          }
+        },
+        {
+          "name": "New CAPTCHA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json().challenge;",
+                  "pm.collectionVariables.set('challengeId', c.challengeId);",
+                  "pm.collectionVariables.set('question', c.question);",
+                  "pm.collectionVariables.set('wrongOption', c.options.find(o => o !== c.question));",
+                  "pm.test('4 unique options, no correctOption', () => { pm.expect(new Set(c.options).size).to.eql(4); pm.expect(JSON.stringify(c).toLowerCase()).to.not.include('correctoption'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/new",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "new"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify WRONG",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json(); pm.test('WRONG +0.5 credited on verify', () => { pm.expect(j.result).to.eql('WRONG'); pm.expect(j.reward.amount).to.eql(0.5); pm.expect(j.balance).to.eql(Number(pm.collectionVariables.get('balanceBefore')) + 1.5); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{challengeId}}\",\n  \"selectedOption\": \"{{wrongOption}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "verify"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Claim (wrong)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('claim does not credit twice', () => pm.expect(pm.response.json().balance).to.eql(Number(pm.collectionVariables.get('balanceBefore')) + 1.5));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{challengeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/claim",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "claim"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Wallet after",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('+1.5 total', () => pm.expect(pm.response.json().balance).to.eql(Number(pm.collectionVariables.get('balanceBefore')) + 1.5));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/wallet/gems",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallet",
+                "gems"
+              ]
+            }
+          }
+        },
+        {
+          "name": "History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('no answers leaked', () => pm.expect(pm.response.text().toLowerCase()).to.not.include('correctoption'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/history?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Config",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "config"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Negative tests",
+      "item": [
+        {
+          "name": "Duplicate verification (old challenge)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('code CHALLENGE_ALREADY_COMPLETED', () => pm.expect(pm.response.json().code).to.eql('CHALLENGE_ALREADY_COMPLETED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{firstChallengeId}}\",\n  \"selectedOption\": \"{{question}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "verify"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Duplicate claim",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('code REWARD_ALREADY_CLAIMED', () => pm.expect(pm.response.json().code).to.eql('REWARD_ALREADY_CLAIMED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{firstChallengeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/claim",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "claim"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Fresh CAPTCHA for attacks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json().challenge;",
+                  "pm.collectionVariables.set('challengeId', c.challengeId);",
+                  "pm.collectionVariables.set('question', c.question);",
+                  "pm.collectionVariables.set('wrongOption', c.options.find(o => o !== c.question));",
+                  "pm.test('4 unique options, no correctOption', () => { pm.expect(new Set(c.options).size).to.eql(4); pm.expect(JSON.stringify(c).toLowerCase()).to.not.include('correctoption'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/new",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "new"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Wrong user (B submits A's challenge)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('code INVALID_CHALLENGE', () => pm.expect(pm.response.json().code).to.eql('INVALID_CHALLENGE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{challengeId}}\",\n  \"selectedOption\": \"{{question}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "verify"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Invalid challenge",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('code INVALID_CHALLENGE', () => pm.expect(pm.response.json().code).to.eql('INVALID_CHALLENGE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"CAP-000000000000\",\n  \"selectedOption\": \"ABC234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "verify"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Missing option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('code VALIDATION_ERROR', () => pm.expect(pm.response.json().code).to.eql('VALIDATION_ERROR'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{challengeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "verify"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Invalid option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('code INVALID_OPTION', () => pm.expect(pm.response.json().code).to.eql('INVALID_OPTION'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{challengeId}}\",\n  \"selectedOption\": \"ZZZZZZ\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "verify"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unauthorized",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('code UNAUTHORIZED', () => pm.expect(pm.response.json().code).to.eql('UNAUTHORIZED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{challengeId}}\",\n  \"selectedOption\": \"{{question}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "verify"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Fake reward + isCorrect + userId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json(); pm.test('server decides', () => { pm.expect(j.result).to.eql('WRONG'); pm.expect(j.reward.amount).to.eql(0.5); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{challengeId}}\",\n  \"selectedOption\": \"{{wrongOption}}\",\n  \"reward\": 100000,\n  \"isCorrect\": true,\n  \"userId\": \"fake\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "verify"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Claim before verify (new challenge)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json().challenge;",
+                  "pm.collectionVariables.set('challengeId', c.challengeId);",
+                  "pm.collectionVariables.set('question', c.question);",
+                  "pm.collectionVariables.set('wrongOption', c.options.find(o => o !== c.question));",
+                  "pm.test('4 unique options, no correctOption', () => { pm.expect(new Set(c.options).size).to.eql(4); pm.expect(JSON.stringify(c).toLowerCase()).to.not.include('correctoption'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/new",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "new"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Claim unverified challenge",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('code NOT_VERIFIED', () => pm.expect(pm.response.json().code).to.eql('NOT_VERIFIED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{challengeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/captcha/claim",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "captcha",
+                "claim"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
